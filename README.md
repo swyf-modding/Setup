@@ -236,3 +236,11 @@ original load. Change one thing at a time.
 
 BepInEx still initialises and writes `BepInEx\LogOutput.log`, so plugin loading and Harmony patching
 can be verified headlessly. A preloader crash lands in `preloader_*.log` in the game root.
+
+## 7. License
+
+MIT — Copyright © 2026 Ras_rap. See [LICENSE](LICENSE).
+
+That covers the scripts and tools. The third-party binaries under `vendor\` keep their own terms:
+`vendor\corlib\` is MIT (Mono) and `vendor\doorstop\` is LGPL-2.1, each with its licence text beside it.
+The game's own assemblies are not redistributed here at all.
