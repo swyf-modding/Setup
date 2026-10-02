@@ -1,4 +1,4 @@
-# scam-wyf-setup
+# Setup
 
 Makes **Scam With Your Friends** loadable under BepInEx, and keeps it loadable after a game update.
 No mods are built here.
@@ -7,10 +7,11 @@ Game build this was made against: **Unity 6000.3.10f1**, Mono backend, managed s
 
 | Repo | What it is |
 |---|---|
-| [scam-wyf-modding-lib](../scam-wyf-modding-lib) | Shared library: base class, patch coordinator, hotkeys, IMGUI host |
-| [scam-wyf-aibackend](../scam-wyf-aibackend) | Sends the game's AI calls to your own LLM |
-| [scam-wyf-modhandler](../scam-wyf-modhandler) | In-game list of installed mods, and the collision report |
-| **scam-wyf-setup** (this one) | This repo |
+| [mod-lib](../mod-lib) | Shared library: base class, menu, config editor, hot reload, patch coordinator |
+| [AI-Backend](../AI-Backend) | Routes the game's AI calls to your own LLM |
+| [Mod-Handler](../Mod-Handler) | The in-game **Plugins** tab — turn mods off without leaving a session |
+| [Launcher](../Launcher) | Installs, launches, and manages mods from outside the game |
+| **Setup** (this one) | The scripts: BepInEx, the corlib override, the vtable patches |
 
 ---
 
@@ -33,8 +34,10 @@ It finds the game (or take `-GameDir`, or set `SWYG_GAME_DIR`), then:
 
 Then build the mods — each is its own repo, with its own `build.ps1`:
 
-* [scam-wyf-aibackend](../scam-wyf-aibackend)
-* [scam-wyf-modhandler](../scam-wyf-modhandler)
+* [AI-Backend](../AI-Backend)
+* [Mod-Handler](../Mod-Handler)
+
+Or use [Launcher](../Launcher), which runs `setup.ps1` for you and lists the mods afterwards.
 
 Launch the game once so BepInEx writes `BepInEx\config\*.cfg`, edit the AI config, relaunch.
 
