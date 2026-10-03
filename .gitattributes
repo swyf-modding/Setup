@@ -1,0 +1,19 @@
+# Line endings. The scripts are PowerShell and the game is Windows-only, so CRLF in the working tree
+# and LF in the repository. Pinned here rather than left to each developer's core.autocrlf, so a
+# checkout does not depend on who cloned it and diffs are not polluted by line-ending churn.
+* text=auto eol=crlf
+
+*.ps1  text eol=crlf
+*.md   text eol=crlf
+*.yml  text eol=crlf
+*.yaml text eol=crlf
+*.ini  text eol=crlf
+*.gitignore     text eol=crlf
+*.gitattributes text eol=crlf
+
+# The vendored binaries are committed deliberately (see vendor\README.md) and .gitignore has to
+# un-ignore them. Marking them binary here keeps the text rules above from ever touching their
+# contents, whatever a future pattern does.
+*.dll   binary
+vendor/doorstop/winhttp.dll   binary
+vendor/doorstop/.doorstop_version text eol=crlf

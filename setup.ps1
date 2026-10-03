@@ -7,7 +7,7 @@
     4. patches the remaining vtable breakages
     5. verifies
 
-    No mods are built here: scam-wyf-aibackend and scam-wyf-modhandler each have their own
+    No mods are built here: AI-Backend and Mod-Handler each have their own
     build.ps1. Safe to re-run - steps 1 and 2 leave existing files alone, steps 3 and 4 rewrite
     their own output. Steps 3 and 4 only ever write to unstripped_corlib\; Managed\ is untouched.
 
@@ -112,8 +112,8 @@ if ($problems.Count -eq 0) {
     Write-Host "Setup complete. The game should load with BepInEx." -ForegroundColor Green
     Write-Host "Next: build the mods, then launch the game once to create their config files." -ForegroundColor Green
     Write-Host ""
-    Write-Host "  scam-wyf-aibackend\build.ps1    -> your own LLM instead of the hosted backend" -ForegroundColor Green
-    Write-Host "  scam-wyf-modhandler\build.ps1   -> in-game mod list" -ForegroundColor Green
+    Write-Host "  AI-Backend\build.ps1    -> your own LLM instead of the hosted backend" -ForegroundColor Green
+    Write-Host "  Mod-Handler\build.ps1   -> in-game mod list" -ForegroundColor Green
     Write-Host ""
     Write-Host "Re-run this after any game update." -ForegroundColor DarkGray
     exit 0

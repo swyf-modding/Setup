@@ -1,0 +1,174 @@
+name: ci
+
+# Checks the scripts and the vendored binaries.
+#
+# Nothing in this repo is compiled and nothing here needs the game, so a hosted runner is enough -
+# unlike the mod repos, whose compile needs the game's own assemblies. What can be verified without a
+# game install is limited, and this workflow does only what can be:
+#
+#   parse        - every .ps1 parses. A syntax error is the only way one of these fails outright.
+#   vendor       - the redistributable binaries are present, non-empty, and carry their licence text.
+#                  These are the files a release ships, so they are the ones worth guarding.
+#   loader-smoke - install-bepinex.ps1 installs the loader half into a fabricated game folder and is a
+#                  no-op on a second run, which is the contract setup.ps1 relies on to be re-runnable.
+#
+# What this cannot check, and does not pretend to: the vtable scan, the stripped-method restore, and
+# whether the loader actually boots the game. All three need a real install. setup.ps1's own step 5 is
+# the check for those - see "Testing Without the Game Taking Over Your Screen" in the README.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  parse:
+    name: Parse the scripts
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No PSScriptAnalyzer: it needs a module restore, and the value here is catching a broken file
+      # before anyone clones it. [Parser] is what the engine itself uses to load a script.
+      - name: Every .ps1 must parse
+        shell: pwsh
+        run: |
+          $failed = $false
+          $scripts = Get-ChildItem -Path . -Filter *.ps1 -Recurse | Sort-Object FullName
+          if (-not $scripts) { throw 'no scripts found - did the checkout succeed?' }
+
+          foreach ($script in $scripts) {
+              $errors = $null
+              $null = [System.Management.Automation.Language.Parser]::ParseFile(
+                  $script.FullName, [ref]$null, [ref]$errors)
+              if ($errors -and $errors.Count) {
+                  $failed = $true
+                  Write-Host "FAIL $($script.Name)" -ForegroundColor Red
+                  $errors | ForEach-Object { Write-Host "     line $($_.Extent.StartLineNumber): $($_.Message)" }
+              } else {
+                  Write-Host "  ok  $($script.Name)"
+              }
+          }
+
+          Write-Host ""
+          Write-Host "$($scripts.Count) scripts"
+          if ($failed) { throw 'one or more scripts failed to parse' }
+
+  vendor:
+    name: Check the vendored binaries
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The eight unstripped BCL assemblies, by name. The count and the identities both matter: a
+      # missing one is a game that will not boot, and a wrong one is worse than a missing one.
+      - name: The corlib override is complete
+        shell: pwsh
+        run: |
+          $expected = @(
+              'mscorlib.dll'
+              'System.dll'
+              'System.Core.dll'
+              'System.Configuration.dll'
+              'System.Numerics.dll'
+              'System.Security.dll'
+              'System.Xml.dll'
+              'Mono.Security.dll'
+          )
+
+          $dir = 'vendor\corlib'
+          $actual = @(Get-ChildItem -Path $dir -Filter *.dll -File | ForEach-Object { $_.Name })
+
+          $missing = $expected | Where-Object { $actual -notcontains $_ }
+          $extra = $actual | Where-Object { $expected -notcontains $_ }
+
+          if ($missing) { throw "missing from ${dir}: $($missing -join ', ')" }
+          if ($extra)   { Write-Host "::warning::not part of the documented set: $($extra -join ', ')" }
+
+          $empty = Get-ChildItem -Path $dir -Filter *.dll -File | Where-Object { $_.Length -eq 0 }
+          if ($empty) { throw "zero-length: $($empty.Name -join ', ')" }
+
+          $size = (Get-ChildItem -Path $dir -Filter *.dll -File | Measure-Object Length -Sum).Sum
+          Write-Host ("  {0} assemblies, {1:N1} MB" -f $actual.Count, ($size / 1MB))
+
+      - name: Licence texts are present
+        shell: pwsh
+        run: |
+          $required = @(
+              'vendor\corlib\LICENSE-Mono'
+              'vendor\doorstop\LICENSE'
+              'vendor\doorstop\doorstop_config.ini'
+              'vendor\doorstop\winhttp.dll'
+              'vendor\doorstop\.doorstop_version'
+              'LICENSE'
+          )
+          $missing = $required | Where-Object { -not (Test-Path -LiteralPath $_) }
+          if ($missing) { throw "missing: $($missing -join ', ')" }
+          Write-Host "  $($required.Count) files"
+
+          # The one setting the whole corlib override depends on. If this line is edited away, the
+          # loader stops preferring unstripped_corlib and the game fails to start in a way that looks
+          # like a BepInEx bug, so it is worth a check that fails loudly here.
+          $ini = Get-Content -LiteralPath 'vendor\doorstop\doorstop_config.ini' -Raw
+          if ($ini -notmatch 'dll_search_path_override\s*=\s*unstripped_corlib') {
+              throw 'doorstop_config.ini does not set dll_search_path_override=unstripped_corlib'
+          }
+          Write-Host '  dll_search_path_override=unstripped_corlib'
+
+  loader-smoke:
+    name: Smoke test the loader install
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # A game folder that satisfies Resolve-GameDir and looks like BepInEx is already installed, so
+      # install-bepinex.ps1 takes the "already installed" path and never reaches the network. The two
+      # .dll files are empty on purpose: nothing here loads them, only checks that they exist.
+      - name: Fabricate a game install
+        shell: pwsh
+        run: |
+          $game = Join-Path $env:RUNNER_TEMP 'Scam With Your Friends'
+          New-Item -ItemType Directory -Force -Path (Join-Path $game 'Scam With Your Friends_Data\Managed') | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $game 'Scam With Your Friends_Data\Managed\mscorlib.dll') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $game 'BepInEx\core') | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $game 'BepInEx\core\BepInEx.dll') | Out-Null
+          "SWYG_GAME_DIR=$game" >> $env:GITHUB_ENV
+          Write-Host "game: $game"
+
+      - name: Install the loader half
+        shell: pwsh
+        run: |
+          .\install-bepinex.ps1 -GameDir $env:SWYG_GAME_DIR -Offline
+
+          foreach ($file in @('winhttp.dll', '.doorstop_version', 'doorstop_config.ini')) {
+              $path = Join-Path $env:SWYG_GAME_DIR $file
+              if (-not (Test-Path -LiteralPath $path)) { throw "not installed: $file" }
+              if ((Get-Item -LiteralPath $path).Length -eq 0) { throw "installed empty: $file" }
+              Write-Host "  + $file"
+          }
+
+          # install-bepinex.ps1 leaves an existing doorstop_config.ini alone. That is deliberate - a
+          # player may have edited theirs - so a second run must not overwrite it.
+          $stale = Join-Path $env:SWYG_GAME_DIR 'sentinel.txt'
+          Set-Content -LiteralPath $stale -Value 'keep me'
+          $config = Join-Path $env:SWYG_GAME_DIR 'doorstop_config.ini'
+          (Get-Content -LiteralPath $config -Raw) -replace 'enabled = true', 'enabled = true # edited' |
+              Set-Content -LiteralPath $config
+
+      - name: Re-running changes nothing
+        shell: pwsh
+        run: |
+          .\install-bepinex.ps1 -GameDir $env:SWYG_GAME_DIR -Offline
+
+          $config = Join-Path $env:SWYG_GAME_DIR 'doorstop_config.ini'
+          if ((Get-Content -LiteralPath $config -Raw) -notmatch '# edited') {
+              throw 'the second run overwrote doorstop_config.ini - it must leave existing files alone'
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $env:SWYG_GAME_DIR 'sentinel.txt'))) {
+              throw 'the second run removed an unrelated file'
+          }
+          Write-Host '  idempotent'
