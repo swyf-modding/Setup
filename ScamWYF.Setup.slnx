@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ScamWYF.Setup.Cli/ScamWYF.Setup.Cli.csproj" />
+    <Project Path="src/ScamWYF.Setup.Core/ScamWYF.Setup.Core.csproj" />
+  </Folder>
+</Solution>

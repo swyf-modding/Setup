@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# Published single-file binaries from build.sh
+dist/
+
 # Game / BepInEx artefacts that belong to an install, not to a repo.
 #
 # vendor\ IS tracked: it holds the loader half of Doorstop and the unstripped BCL, both

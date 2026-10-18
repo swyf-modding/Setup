@@ -6,11 +6,16 @@ name: ci
 # unlike the mod repos, whose compile needs the game's own assemblies. What can be verified without a
 # game install is limited, and this workflow does only what can be:
 #
+#   dotnet       - the .NET projects build, and `swyf-setup` installs the loader into a fabricated game
+#                  folder with --offline, then is a no-op on a second run. This is the cross-platform
+#                  path, and it also exercises the Mono.Cecil steps against a real assembly.
 #   parse        - every .ps1 parses. A syntax error is the only way one of these fails outright.
+#                  (Superseded by the .NET tool; kept while the scripts are still in the tree.)
 #   vendor       - the redistributable binaries are present, non-empty, and carry their licence text.
 #                  These are the files a release ships, so they are the ones worth guarding.
 #   loader-smoke - install-bepinex.ps1 installs the loader half into a fabricated game folder and is a
 #                  no-op on a second run, which is the contract setup.ps1 relies on to be re-runnable.
+#                  (Superseded by the dotnet job.)
 #
 # What this cannot check, and does not pretend to: the vtable scan, the stripped-method restore, and
 # whether the loader actually boots the game. All three need a real install. setup.ps1's own step 5 is
@@ -55,6 +60,64 @@ jobs:
           Write-Host ""
           Write-Host "$($scripts.Count) scripts"
           if ($failed) { throw 'one or more scripts failed to parse' }
+
+  dotnet:
+    name: Build and smoke test the CLI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Building is the check for the parts the .ps1 jobs cannot reach: the patching steps compile
+      # against Mono.Cecil now rather than loading it out of an installed game.
+      - name: Build
+        run: dotnet build ScamWYF.Setup.slnx -c Release --nologo
+
+      # A game folder that satisfies discovery and looks like BepInEx is already installed, so
+      # `install --offline` takes the "already installed" path and never reaches the network. The real
+      # mscorlib is copied in - not an empty file - so the vtable scan runs against a readable assembly.
+      - name: Fabricate a game install
+        run: |
+          game="$RUNNER_TEMP/Scam With Your Friends"
+          mkdir -p "$game/Scam With Your Friends_Data/Managed" "$game/BepInEx/core"
+          cp vendor/corlib/mscorlib.dll "$game/Scam With Your Friends_Data/Managed/mscorlib.dll"
+          : > "$game/BepInEx/core/BepInEx.dll"
+          echo "SWYG_GAME_DIR=$game" >> "$GITHUB_ENV"
+
+      - name: Install offline
+        run: |
+          dotnet run --project src/ScamWYF.Setup.Cli -c Release -- install --offline
+
+          for file in winhttp.dll .doorstop_version doorstop_config.ini; do
+              path="$SWYG_GAME_DIR/$file"
+              [ -s "$path" ] || { echo "not installed or empty: $file" >&2; exit 1; }
+              echo "  + $file"
+          done
+
+          # The corlib override is what makes the loader usable, so the run is only a success if it
+          # seeded it and the game still has its own copy untouched.
+          [ -s "$SWYG_GAME_DIR/unstripped_corlib/mscorlib.dll" ] || { echo 'no corlib override' >&2; exit 1; }
+
+          # An existing doorstop_config.ini is left alone - a player may have edited theirs - so a
+          # second run must not overwrite it.
+          printf '\n# edited\n' >> "$SWYG_GAME_DIR/doorstop_config.ini"
+
+      - name: Re-running changes nothing
+        run: |
+          dotnet run --project src/ScamWYF.Setup.Cli -c Release -- install --offline
+
+          if ! grep -q '# edited' "$SWYG_GAME_DIR/doorstop_config.ini"; then
+              echo 'the second run overwrote doorstop_config.ini - it must leave existing files alone' >&2
+              exit 1
+          fi
+          echo '  idempotent'
+
+      - name: Verify reports ready
+        run: dotnet run --project src/ScamWYF.Setup.Cli -c Release -- verify
 
   vendor:
     name: Check the vendored binaries
