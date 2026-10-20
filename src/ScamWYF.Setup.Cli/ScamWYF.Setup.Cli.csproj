@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    `swyf-setup` - the front-end for someone who only wants the BepInEx system and no launcher.
+    `swyf-setup` - the front-end for someone who only wants the BepInEx system and no Switchboard.
 
     Published self-contained and single-file per platform, so the download is one executable with the
     vendored Doorstop and unstripped corlib compiled inside it. See build.sh / build.ps1.

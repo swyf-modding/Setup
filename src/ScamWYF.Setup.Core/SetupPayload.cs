@@ -17,7 +17,7 @@ namespace ScamWYF.Setup
     ///   * <see cref="FromDirectory"/> reads a `vendor\` folder, which is what the repository and CI
     ///     have, and what a developer wants while iterating on the corlib.
     ///   * <see cref="Embedded"/> reads the same files compiled into this assembly, which is what lets
-    ///     the published launcher be one file and the CLI be one binary.
+    ///     the published Switchboard be one file and the CLI be one binary.
     ///
     /// Nothing else in the tool knows which it got.
     /// </remarks>

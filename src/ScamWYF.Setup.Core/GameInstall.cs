@@ -16,7 +16,7 @@ namespace ScamWYF.Setup
     /// installed answer.
     ///
     /// All paths are built with <see cref="System.IO.Path.Combine(string, string)"/> rather than the
-    /// `\` literals the Windows-only launcher used, so this is correct on Linux too.
+    /// `\` literals the Windows-only Switchboard used, so this is correct on Linux too.
     /// </remarks>
     public sealed class GameInstall
     {

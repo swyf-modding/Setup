@@ -18,7 +18,7 @@ namespace ScamWYF.Setup
     /// </summary>
     /// <remarks>
     /// The same steps feed a terminal, a GUI and the test suite. They write here rather than to the
-    /// console so the launcher can marshal each line onto its own thread, and so a test can assert on
+    /// console so Switchboard can marshal each line onto its own thread, and so a test can assert on
     /// what was said without capturing a process's stdout.
     /// </remarks>
     public interface ISetupLog

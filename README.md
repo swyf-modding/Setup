@@ -118,7 +118,7 @@ Then build the mods — each is its own repo, with its own build script:
 * [AI-Backend](https://github.com/swyf-modding/AI-Backend)
 * [Mod-Handler](https://github.com/swyf-modding/Mod-Handler)
 
-Or use [Launcher](https://github.com/swyf-modding/Launcher), which runs setup for you and lists the
+Or use [Switchboard](https://github.com/swyf-modding/Switchboard), which runs setup for you and lists the
 mods afterwards.
 
 Launch the game once so BepInEx writes `BepInEx/config/*.cfg`, edit the AI config, relaunch.
@@ -136,7 +136,7 @@ dotnet run --project src/ScamWYF.Setup.Cli -- doctor
 ```
 
 The logic is a plain .NET class library — `src/ScamWYF.Setup.Core` — that both this CLI and
-[Launcher](https://github.com/swyf-modding/Launcher) call **in process**. There is nothing to install
+[Switchboard](https://github.com/swyf-modding/Switchboard) call **in process**. There is nothing to install
 but the .NET SDK. `Mono.Cecil` comes from NuGet, so the patching steps no longer depend on the game's
 `BepInEx/core` already existing, and they work before the game has been touched at all.
 
@@ -417,7 +417,7 @@ vendor/                    Doorstop and the unstripped BCL, embedded into the pu
 build.sh                   One self-contained binary per platform, into dist/
 ```
 
-Superseded, and kept only until the launcher port lands: `setup.ps1`,
+Superseded, and kept only until the Switchboard port lands: `setup.ps1`,
 `install-bepinex.ps1`, `GameDir.ps1` and `tools/*.ps1`. The library above is the source of truth now;
 the scripts are what it was ported from.
 
@@ -523,4 +523,4 @@ The game's own assemblies are not redistributed here at all.
 | [mod-lib](https://github.com/swyf-modding/mod-lib) | Shared library: base class, menu, config editor, hot reload, patch coordinator |
 | [AI-Backend](https://github.com/swyf-modding/AI-Backend) | Routes the game's AI calls to your own LLM |
 | [Mod-Handler](https://github.com/swyf-modding/Mod-Handler) | The in-game **Plugins** tab — turn mods off without leaving a session |
-| [Launcher](https://github.com/swyf-modding/Launcher) | Installs, launches, and manages mods from outside the game |
+| [Switchboard](https://github.com/swyf-modding/Switchboard) | Installs, launches, and manages mods from outside the game |

@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    The setup logic, as a library, so the CLI and the launcher run the same code rather than each
+    The setup logic, as a library, so the CLI and Switchboard run the same code rather than each
     driving PowerShell. Cross-platform on purpose: the Windows-only PowerShell scripts it replaces
-    could not run on Linux, and the launcher's WPF host cannot either.
+    could not run on Linux, and Switchboard's WPF host cannot either.
 
     Mono.Cecil is a PackageReference rather than a vendored dll here. The old tools loaded it out of
     the game's BepInEx\core at run time, which meant the patching steps could only run after BepInEx

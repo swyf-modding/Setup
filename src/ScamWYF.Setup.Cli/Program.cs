@@ -11,7 +11,7 @@ namespace ScamWYF.Setup.Cli
     /// `swyf-setup` - the command-line front-end for the setup library.
     /// </summary>
     /// <remarks>
-    /// This is the whole tool for someone who only wants the BepInEx system and not the launcher:
+    /// This is the whole tool for someone who only wants the BepInEx system and not Switchboard:
     /// one self-contained binary that installs and repairs an install on Windows and Linux alike.
     /// </remarks>
     public static class Program
