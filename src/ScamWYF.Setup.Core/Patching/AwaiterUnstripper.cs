@@ -127,6 +127,10 @@ namespace ScamWYF.Setup.Patching
                 var destination = Path.Combine(overrideDir, name);
                 assembly.Write(destination);
                 log.Success(name + " - added " + patched + " method(s), wrote " + destination);
+
+                // Recorded here as well as at the end of the vtable step, because that step is
+                // optional: --no-fix leaves this the only thing that wrote to the folder.
+                if (DerivedOverrides.Tracks(game, overrideDir)) DerivedOverrides.Record(game, name);
                 return patched;
             }
         }

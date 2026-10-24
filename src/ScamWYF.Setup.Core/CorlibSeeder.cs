@@ -50,6 +50,11 @@ namespace ScamWYF.Setup
                 log.Detail("  = override already seeded, leaving it");
             }
 
+            // Which names came from the payload, recorded every run and not only when something
+            // was copied. Everything else in the folder is a patched copy of a game assembly, and
+            // telling the two apart is what lets a game update be spotted later.
+            DerivedOverrides.RecordSeeded(game, payload.Corlib);
+
             return seeded;
         }
     }

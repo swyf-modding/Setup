@@ -73,6 +73,13 @@ namespace ScamWYF.Setup.Patching
 
             var only = assemblies == null ? null : new HashSet<string>(assemblies, StringComparer.OrdinalIgnoreCase);
 
+            // A patched copy left over from a previous game build is thrown away before anything
+            // reads it. Patching it again would find nothing to do - it is already patched - so it
+            // would survive every re-run while shadowing the assembly the updated game shipped.
+            // Only when fixing: a scan is meant to report the install, not change it.
+            var tracked = DerivedOverrides.Tracks(game, unstripped);
+            if (fix && tracked) DerivedOverrides.DiscardStale(game, log);
+
             // Prefer the override folder's copy of an assembly, since that is what actually loads.
             var resolver = new DefaultAssemblyResolver();
             resolver.AddSearchDirectory(unstripped);
@@ -171,6 +178,11 @@ namespace ScamWYF.Setup.Patching
                     patchedAssemblies++;
                 }
             }
+
+            // Every derived copy now standing is either one this run wrote from the current
+            // Managed\, or one that was already current. Recording the lot is what lets the next
+            // game update be spotted, rather than inferred from a crash.
+            if (fix && tracked) DerivedOverrides.RecordAll(game);
 
             log.Info(string.Empty);
             if (breakages == 0)

@@ -65,6 +65,25 @@ namespace ScamWYF.Setup
         /// <summary>Doorstop is pointed at the corlib override, which is what makes it usable.</summary>
         public bool HasCorlibOverride => File.Exists(System.IO.Path.Combine(OverrideFolder, "mscorlib.dll"));
 
+        /// <summary>
+        /// Patched copies in the override folder that were built from an older build of the game.
+        /// </summary>
+        /// <remarks>
+        /// Doorstop searches the override folder before <c>Managed\</c>, so one of these shadows
+        /// the assembly the updated game shipped. The failure is not a managed exception: Unity
+        /// serialises InputSystem settings into globalgamemanagers, so a stale
+        /// <c>Unity.InputSystem.dll</c> makes the engine misread its own data and crash on startup
+        /// reporting that the file is corrupted. Verifying the install through Steam does not help,
+        /// because the file is fine and the reader is wrong.
+        ///
+        /// Re-running setup fixes it. Empty on an install set up before this was recorded; see
+        /// <see cref="DerivedOverrides.Derived"/>.
+        /// </remarks>
+        public IReadOnlyList<string> StaleOverrides => DerivedOverrides.Stale(this);
+
+        /// <summary>No patched copy in the override folder predates the installed game.</summary>
+        public bool CorlibOverrideIsCurrent => StaleOverrides.Count == 0;
+
         public bool DoorstopPointsAtOverride
         {
             get
@@ -89,7 +108,8 @@ namespace ScamWYF.Setup
         public bool Exists => Directory.Exists(Path);
 
         /// <summary>Setup has everything it needs to work.</summary>
-        public bool IsReady => HasGame && HasDoorstop && HasBepInEx && HasCorlibOverride && DoorstopPointsAtOverride;
+        public bool IsReady => HasGame && HasDoorstop && HasBepInEx && HasCorlibOverride &&
+            DoorstopPointsAtOverride && CorlibOverrideIsCurrent;
 
         /// <summary>
         /// The install to work on.
@@ -179,9 +199,15 @@ namespace ScamWYF.Setup
             if (!HasBepInEx) missing.Add("BepInEx");
             if (!HasCorlibOverride) missing.Add("corlib override");
 
-            return missing.Count == 0
+            if (missing.Count > 0) return "needs setup: " + string.Join(", ", missing);
+
+            // Everything is present but some of it is older than the game. Said separately from
+            // the missing-pieces list, because "the game updated" is a different situation from
+            // "this was never set up" and the player reaches it without changing anything.
+            var stale = StaleOverrides;
+            return stale.Count == 0
                 ? "ready"
-                : "needs setup: " + string.Join(", ", missing);
+                : "needs setup: the game updated (" + string.Join(", ", stale) + " predate it)";
         }
 
         /// <summary>Expands a leading ~ and makes a path absolute. Returns null for empty input.</summary>
