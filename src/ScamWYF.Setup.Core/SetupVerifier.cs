@@ -43,6 +43,12 @@ namespace ScamWYF.Setup
                 problems.Add("no assemblies in " + GameInstall.DataFolderName + "/Managed");
             }
 
+            var stale = game.StaleOverrides;
+            if (stale.Count > 0)
+            {
+                problems.Add("built from an older game version, re-run setup: " + string.Join(", ", stale));
+            }
+
             if (game.HasGame && Directory.Exists(game.OverrideFolder))
             {
                 var scan = new VtableBreakFixer().Run(game, fix: false, assemblies: null, unstripped: null, log: log);
